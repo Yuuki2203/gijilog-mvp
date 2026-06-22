@@ -1,6 +1,28 @@
-// TODO: Step1(Supabaseプロジェクト作成・接続設定)完了後に実装する。
-//
-// サーバーコンポーネント/Server Actionsから使うSupabaseクライアントを作成する。
-// @supabase/ssr の createServerClient + cookies() を使用予定。
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
-export {};
+export async function createClient() {
+  const cookieStore = await cookies();
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch {
+            // Server Component内ではCookieの書き込みが失敗する。
+            // セッション更新はmiddlewareが担うため、ここでの失敗は無視する。
+          }
+        },
+      },
+    }
+  );
+}

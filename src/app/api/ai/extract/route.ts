@@ -1,10 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractRequestSchema } from "@/lib/schemas/extract";
 import { extractMinutes } from "@/lib/claude";
+import { createClient } from "@/lib/supabase/server";
 
-// TODO: 認証実装後、ここでSupabaseのセッションチェックを追加する
-// (未認証ユーザーが呼べると、Claude APIの課金が無防備に発生するため)
 export async function POST(request: NextRequest) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return NextResponse.json(
+      { error: "認証が必要です。再度ログインしてください。" },
+      { status: 401 }
+    );
+  }
+
   const body = await request.json();
 
   const parsedRequest = extractRequestSchema.safeParse(body);

@@ -1,6 +1,8 @@
-// TODO: Step1(Supabaseプロジェクト作成・接続設定)完了後に実装する。
-//
-// ブラウザ(クライアントコンポーネント)から使うSupabaseクライアントを作成する。
-// @supabase/ssr の createBrowserClient を使用予定。
+import { createBrowserClient } from "@supabase/ssr";
 
-export {};
+export function createClient() {
+  return createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
+  );
+}

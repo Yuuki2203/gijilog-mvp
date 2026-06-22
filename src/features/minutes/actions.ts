@@ -1,8 +1,6 @@
 "use server";
 
-// TODO: Step2(Prismaスキーマ定義)完了後に実装する。
-//
-// 実装予定の関数:
+// TODO: 実装予定の関数:
 // - createMinute(input: MinuteExtractInput & { rawText: string; meetingDate: Date })
 //     AI抽出結果をDBに保存する
 // - updateMinute(id: string, input: Partial<MinuteExtractInput>)
