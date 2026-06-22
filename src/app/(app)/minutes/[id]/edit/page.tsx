@@ -8,6 +8,16 @@ import { Label } from "@/components/ui/label";
 import { updateMinute } from "@/app/actions/minutes";
 import { Loader2, AlertCircle } from "lucide-react";
 
+function isRedirectError(err: unknown): boolean {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "digest" in err &&
+    typeof (err as { digest: unknown }).digest === "string" &&
+    (err as { digest: string }).digest.startsWith("NEXT_REDIRECT")
+  );
+}
+
 type Todo = {
   content: string;
   assignee: string | null;
@@ -40,22 +50,27 @@ export default function EditMinutePage({
 
   // 既存データを取得して初期値にセット
   useEffect(() => {
-    params.then(({ id }) => {
-      setMinuteId(id);
-      fetch(`/api/minutes/${id}`)
-        .then((res) => {
-          if (!res.ok) throw new Error("取得に失敗しました。");
-          return res.json() as Promise<MinuteData>;
-        })
-        .then((data) => {
-          setTitle(data.title);
-          setMeetingDate(data.meetingDate);
-          setDecisions(data.decisions);
-          setTodos(data.todos);
-        })
-        .catch(() => setError("議事録の取得に失敗しました。"))
-        .finally(() => setIsLoading(false));
-    });
+    params
+      .then(({ id }) => {
+        setMinuteId(id);
+        fetch(`/api/minutes/${id}`)
+          .then((res) => {
+            if (!res.ok) throw new Error("取得に失敗しました。");
+            return res.json() as Promise<MinuteData>;
+          })
+          .then((data) => {
+            setTitle(data.title);
+            setMeetingDate(data.meetingDate);
+            setDecisions(data.decisions);
+            setTodos(data.todos);
+          })
+          .catch(() => setError("議事録の取得に失敗しました。"))
+          .finally(() => setIsLoading(false));
+      })
+      .catch(() => {
+        setError("議事録の取得に失敗しました。");
+        setIsLoading(false);
+      });
   }, [params]);
 
   // 保存
@@ -68,10 +83,9 @@ export default function EditMinutePage({
     try {
       await updateMinute(minuteId, { title, meetingDate, decisions, todos });
     } catch (err) {
-      if (err instanceof Error && err.message !== "NEXT_REDIRECT") {
-        setError("保存に失敗しました。");
-        setIsSaving(false);
-      }
+      if (isRedirectError(err)) throw err;
+      setError("保存に失敗しました。");
+      setIsSaving(false);
     }
   }
 
@@ -89,7 +103,12 @@ export default function EditMinutePage({
   // TODOの操作
   function updateTodo(index: number, field: keyof Todo, value: string) {
     setTodos((prev) =>
-      prev.map((t, i) => (i === index ? { ...t, [field]: value || null } : t))
+      prev.map((t, i) => {
+        if (i !== index) return t;
+        // content は NOT NULL のため空文字をそのまま保持。nullable フィールドのみ空文字を null に変換
+        const newValue = field === "content" ? value : (value || null);
+        return { ...t, [field]: newValue };
+      })
     );
   }
   function addTodo() {

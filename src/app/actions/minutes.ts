@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 type CreateMinuteInput = {
   title: string;
   meetingDate: string;
+  summary: string;
   decisions: string[];
   todos: Array<{
     content: string;
@@ -28,7 +29,7 @@ export async function createMinute(input: CreateMinuteInput) {
       title: input.title,
       meetingDate: new Date(input.meetingDate),
       rawText: "",
-      summary: "",
+      summary: input.summary,
       decisions: {
         create: input.decisions.map((content, order) => ({ content, order })),
       },

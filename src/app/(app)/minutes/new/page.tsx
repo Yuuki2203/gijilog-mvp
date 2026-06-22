@@ -13,6 +13,7 @@ import { Loader2, AlertCircle } from "lucide-react";
 type ExtractedResult = {
   title: string;
   meetingDate: string;
+  summary: string;
   decisions: string[];
   todos: Array<{
     content: string;
@@ -20,6 +21,16 @@ type ExtractedResult = {
     dueDate: string | null;
   }>;
 };
+
+function isRedirectError(err: unknown): boolean {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "digest" in err &&
+    typeof (err as { digest: unknown }).digest === "string" &&
+    (err as { digest: string }).digest.startsWith("NEXT_REDIRECT")
+  );
+}
 
 export default function NewMinutePage() {
   // 入力
@@ -34,6 +45,7 @@ export default function NewMinutePage() {
   const [extracted, setExtracted] = useState<ExtractedResult | null>(null);
   const [title, setTitle] = useState("");
   const [meetingDate, setMeetingDate] = useState("");
+  const [summary, setSummary] = useState("");
   const [decisions, setDecisions] = useState<string[]>([]);
   const [todos, setTodos] = useState<ExtractedResult["todos"]>([]);
 
@@ -70,6 +82,7 @@ export default function NewMinutePage() {
       setExtracted(data);
       setTitle(data.title);
       setMeetingDate(data.meetingDate ?? "");
+      setSummary(data.summary ?? "");
       setDecisions(data.decisions);
       setTodos(data.todos);
     } catch (err) {
@@ -92,13 +105,11 @@ export default function NewMinutePage() {
     setIsSaving(true);
     setError(null);
     try {
-      await createMinute({ title, meetingDate, decisions, todos });
+      await createMinute({ title, meetingDate, summary, decisions, todos });
     } catch (err) {
-      // redirect()はエラーとしてthrowされるため除外
-      if (err instanceof Error && err.message !== "NEXT_REDIRECT") {
-        setError("保存に失敗しました。");
-        setIsSaving(false);
-      }
+      if (isRedirectError(err)) throw err;
+      setError("保存に失敗しました。");
+      setIsSaving(false);
     }
   }
 
@@ -116,7 +127,12 @@ export default function NewMinutePage() {
   // TODOの操作
   function updateTodo(index: number, field: keyof ExtractedResult["todos"][0], value: string) {
     setTodos((prev) =>
-      prev.map((t, i) => (i === index ? { ...t, [field]: value || null } : t))
+      prev.map((t, i) => {
+        if (i !== index) return t;
+        // content は NOT NULL のため空文字をそのまま保持。nullable フィールドのみ空文字を null に変換
+        const newValue = field === "content" ? value : (value || null);
+        return { ...t, [field]: newValue };
+      })
     );
   }
   function addTodo() {
