@@ -58,5 +58,29 @@
       "Bash(vercel --prod:*)",
       "Bash(vercel deploy --prod:*)"
     ]
+  },
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "permission_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -ExecutionPolicy RemoteSigned -Command \"Import-Module BurntToast; New-BurntToastNotification -Text 'Claude Code', '許可待ちです' -Silent; (New-Object System.Media.SoundPlayer 'C:\\Windows\\Media\\Speech Off (2).wav').PlaySync()\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -ExecutionPolicy RemoteSigned -Command \"Import-Module BurntToast; New-BurntToastNotification -Text 'Claude Code', '作業が完了しました' -Silent; (New-Object System.Media.SoundPlayer 'C:\\Windows\\Media\\Speech On (2).wav').PlaySync()\""
+          }
+        ]
+      }
+    ]
   }
 }
