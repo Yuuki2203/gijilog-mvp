@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { createMinute } from "@/app/actions/minutes";
+import { Loader2, AlertCircle } from "lucide-react";
 
 type ExtractedResult = {
   title: string;
@@ -66,7 +69,7 @@ export default function NewMinutePage() {
       const data: ExtractedResult = await res.json();
       setExtracted(data);
       setTitle(data.title);
-      setMeetingDate(data.meetingDate);
+      setMeetingDate(data.meetingDate ?? "");
       setDecisions(data.decisions);
       setTodos(data.todos);
     } catch (err) {
@@ -125,6 +128,11 @@ export default function NewMinutePage() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-8">
+      <div className="mb-6">
+        <Link href="/minutes" className={buttonVariants({ variant: "outline", size: "sm" })}>
+          ← 一覧に戻る
+        </Link>
+      </div>
       <h1 className="mb-6 text-2xl font-bold">新規作成</h1>
 
       {/* Step1: テキスト入力 */}
@@ -150,10 +158,18 @@ export default function NewMinutePage() {
           />
         </div>
         {error && !extracted && (
-          <p className="text-sm text-destructive">{error}</p>
+            <div className="flex items-center gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+    <AlertCircle className="h-4 w-4 shrink-0" />
+    {error}
+  </div>
         )}
         <Button onClick={handleExtract} disabled={isExtracting}>
-          {isExtracting ? "抽出中..." : "AI抽出"}
+  {isExtracting ? (
+    <>
+      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+      AI解析中...
+    </>
+  ) : "AI抽出"}
         </Button>
       </section>
 
@@ -251,11 +267,19 @@ export default function NewMinutePage() {
           </div>
 
           {error && (
-            <p className="text-sm text-destructive">{error}</p>
+              <div className="flex items-center gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+    <AlertCircle className="h-4 w-4 shrink-0" />
+    {error}
+  </div>
           )}
 
           <Button onClick={handleSave} disabled={isSaving}>
-            {isSaving ? "保存中..." : "保存する"}
+              {isSaving ? (
+    <>
+      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+      保存中...
+    </>
+  ) : "保存する"}
           </Button>
         </section>
       )}

@@ -1,3 +1,4 @@
+import * as React from "react"
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
 
@@ -44,14 +45,29 @@ function Button({
   className,
   variant = "default",
   size = "default",
+  asChild = false,
+  children,
   ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants> & { asChild?: boolean }) {
+  const buttonClass = cn(buttonVariants({ variant, size, className }))
+
+  // asChild=true のとき、子要素（Linkなど）にボタンスタイルをマージして返す
+  if (asChild && React.isValidElement(children)) {
+    const child = children as React.ReactElement<{ className?: string }>
+    return React.cloneElement(child, {
+      ...child.props,
+      className: cn(buttonClass, child.props.className),
+    })
+  }
+
   return (
     <ButtonPrimitive
       data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
+      className={buttonClass}
       {...props}
-    />
+    >
+      {children}
+    </ButtonPrimitive>
   )
 }
 

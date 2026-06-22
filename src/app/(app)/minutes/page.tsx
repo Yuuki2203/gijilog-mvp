@@ -49,9 +49,17 @@ export default async function MinutesPage() {
         </div>
       </div>
 
-      {minutes.length === 0 ? (
-        <p className="text-muted-foreground">まだ議事録がありません。</p>
-      ) : (
+{minutes.length === 0 ? (
+  <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
+    <p className="text-muted-foreground">まだ議事録がありません。</p>
+    <p className="text-sm text-muted-foreground">
+      会議のテキストを貼り付けるだけで、AIが決定事項・TODOを自動で抽出します。
+    </p>
+    <Link href="/minutes/new" className={buttonVariants()}>
+      最初の議事録を作成する
+    </Link>
+  </div>
+) : (
         <div className="flex flex-col gap-3">
           {minutes.map((minute) => (
             <Link

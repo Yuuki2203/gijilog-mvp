@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { updateMinute } from "@/app/actions/minutes";
+import { Loader2, AlertCircle } from "lucide-react";
 
 type Todo = {
   content: string;
@@ -99,7 +100,13 @@ export default function EditMinutePage({
   }
 
   if (isLoading) {
-    return <main className="mx-auto max-w-2xl px-4 py-8">読み込み中...</main>;
+
+  return (
+    <main className="mx-auto max-w-2xl px-4 py-8 flex items-center gap-2 text-muted-foreground">
+      <Loader2 className="h-4 w-4 animate-spin" />
+      読み込み中...
+    </main>
+  );
   }
 
   return (
@@ -187,11 +194,21 @@ export default function EditMinutePage({
           </div>
         </div>
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
+{error && (
+  <div className="flex items-center gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+    <AlertCircle className="h-4 w-4 shrink-0" />
+    {error}
+  </div>
+)}
 
         <div className="flex gap-2">
           <Button onClick={handleSave} disabled={isSaving}>
-            {isSaving ? "保存中..." : "保存する"}
+            {isSaving ? (
+  <>
+    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+    保存中...
+  </>
+) : "保存する"}
           </Button>
           <Button
             variant="outline"
