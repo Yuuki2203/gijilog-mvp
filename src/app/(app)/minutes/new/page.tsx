@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -162,7 +161,7 @@ export default function NewMinutePage() {
             {extractError}
           </div>
         )}
-        <Button onClick={handleExtract} disabled={isExtracting}>
+        <Button onClick={handleExtract} disabled={isExtracting || isSaving}>
           {isExtracting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -270,7 +269,7 @@ export default function NewMinutePage() {
             </div>
           )}
 
-          <Button onClick={handleSave} disabled={isSaving}>
+          <Button onClick={handleSave} disabled={isSaving || isExtracting}>
             {isSaving ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
