@@ -7,7 +7,7 @@ export async function signInAsGuest() {
   const supabase = await createClient()
   const { error } = await supabase.auth.signInAnonymously()
   if (error) {
-    return { error: error.message }
+    throw new Error(error.message)
   }
   redirect('/minutes')
 }
