@@ -4,7 +4,8 @@
 
 会議のテキストを貼り付けるだけで、Claude AIが決定事項・TODOを自動抽出。編集・保存・PDF出力まで一気通貫で行えます。
 
-🔗 **[デモを試す](https://gijilog-mvp.vercel.app)**（デプロイ後にURLを更新してください）
+🔗[デモを試す]
+(https://gijilog-mvp.vercel.app/)
 
 ![Gijilog スクリーンショット](public/screenshot.png)
 

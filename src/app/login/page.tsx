@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
+import { signInAsGuest } from './actions';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -134,6 +135,21 @@ export default function LoginPage() {
               </Button>
             </TabsContent>
           </Tabs>
+
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">または</span>
+            </div>
+          </div>
+
+          <form action={signInAsGuest}>
+            <Button type="submit" variant="outline" className="w-full">
+              ゲストとして試す
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </main>

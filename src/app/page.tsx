@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
+import { signInAsGuest } from './login/actions'
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -34,9 +35,16 @@ export default async function HomePage() {
           </p>
         </div>
 
-        <Button asChild size="lg">
-          <Link href="/login">今すぐ試す →</Link>
-        </Button>
+        <div className="flex gap-4 flex-wrap justify-center">
+          <Button asChild size="lg">
+            <Link href="/login">今すぐ試す →</Link>
+          </Button>
+          <form action={signInAsGuest}>
+            <Button type="submit" variant="outline" size="lg">
+              ゲストとして試す
+            </Button>
+          </form>
+        </div>
 
         {/* 機能3点 */}
         <div className="flex gap-8 text-sm text-muted-foreground">
