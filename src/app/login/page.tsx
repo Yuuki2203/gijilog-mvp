@@ -90,7 +90,7 @@ export default function LoginPage() {
           <CardTitle className="text-2xl">Gijilog</CardTitle>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="login">
+          <Tabs defaultValue="login" onValueChange={() => setError(null)}>
             <TabsList className="w-full">
               <TabsTrigger value="login" className="flex-1">ログイン</TabsTrigger>
               <TabsTrigger value="signup" className="flex-1">サインアップ</TabsTrigger>
