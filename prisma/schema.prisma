@@ -39,7 +39,6 @@ model Todo {
   content  String
   assignee String?
   dueDate  DateTime?
-  isDone   Boolean   @default(false)
   order    Int
   minute   Minute    @relation(fields: [minuteId], references: [id], onDelete: Cascade)
 

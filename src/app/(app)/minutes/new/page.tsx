@@ -9,38 +9,26 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { createMinute } from "@/app/actions/minutes";
 import { isNextInternalError } from "@/lib/utils";
+import type { ExtractedMinutes } from "@/lib/schemas/extract";
 import { Loader2, AlertCircle } from "lucide-react";
 
-type ExtractedResult = {
-  title: string;
-  meetingDate: string;
-  summary: string;
-  decisions: string[];
-  todos: Array<{
-    content: string;
-    assignee: string | null;
-    dueDate: string | null;
-  }>;
-};
+type DecisionItem = { id: string; value: string };
+type TodoItem = { id: string; content: string; assignee: string | null; dueDate: string | null };
 
 export default function NewMinutePage() {
-  // 入力
   const [rawText, setRawText] = useState("");
 
-  // UI状態
   const [isExtracting, setIsExtracting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasExtracted, setHasExtracted] = useState(false);
 
-  // 抽出結果フォーム
-  const [extracted, setExtracted] = useState<ExtractedResult | null>(null);
   const [title, setTitle] = useState("");
   const [meetingDate, setMeetingDate] = useState("");
   const [summary, setSummary] = useState("");
-  const [decisions, setDecisions] = useState<string[]>([]);
-  const [todos, setTodos] = useState<ExtractedResult["todos"]>([]);
+  const [decisions, setDecisions] = useState<DecisionItem[]>([]);
+  const [todos, setTodos] = useState<TodoItem[]>([]);
 
-  // ファイル読み込み
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -51,7 +39,6 @@ export default function NewMinutePage() {
     reader.readAsText(file, "utf-8");
   }
 
-  // AI抽出
   async function handleExtract() {
     if (!rawText.trim()) {
       setError("テキストを入力してください。");
@@ -69,13 +56,12 @@ export default function NewMinutePage() {
         const data = await res.json();
         throw new Error(data.error ?? "抽出に失敗しました。");
       }
-      const data: ExtractedResult = await res.json();
-      setExtracted(data);
+      const data: ExtractedMinutes = await res.json();
       setTitle(data.title);
-      setMeetingDate(data.meetingDate ?? "");
       setSummary(data.summary ?? "");
-      setDecisions(data.decisions);
-      setTodos(data.todos);
+      setDecisions(data.decisions.map((v) => ({ id: crypto.randomUUID(), value: v })));
+      setTodos(data.todos.map((t) => ({ id: crypto.randomUUID(), ...t })));
+      setHasExtracted(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "抽出に失敗しました。");
     } finally {
@@ -83,7 +69,6 @@ export default function NewMinutePage() {
     }
   }
 
-  // 保存
   async function handleSave() {
     if (!title.trim()) {
       setError("タイトルを入力してください。");
@@ -96,7 +81,14 @@ export default function NewMinutePage() {
     setIsSaving(true);
     setError(null);
     try {
-      await createMinute({ title, meetingDate, rawText, summary, decisions, todos });
+      await createMinute({
+        title,
+        meetingDate,
+        rawText,
+        summary,
+        decisions: decisions.map((d) => d.value),
+        todos: todos.map(({ id: _, ...t }) => t),
+      });
     } catch (err) {
       if (isNextInternalError(err)) throw err;
       setError("保存に失敗しました。");
@@ -105,33 +97,30 @@ export default function NewMinutePage() {
     }
   }
 
-  // 決定事項の操作
-  function updateDecision(index: number, value: string) {
-    setDecisions((prev) => prev.map((d, i) => (i === index ? value : d)));
+  function updateDecision(id: string, value: string) {
+    setDecisions((prev) => prev.map((d) => (d.id === id ? { ...d, value } : d)));
   }
   function addDecision() {
-    setDecisions((prev) => [...prev, ""]);
+    setDecisions((prev) => [...prev, { id: crypto.randomUUID(), value: "" }]);
   }
-  function removeDecision(index: number) {
-    setDecisions((prev) => prev.filter((_, i) => i !== index));
+  function removeDecision(id: string) {
+    setDecisions((prev) => prev.filter((d) => d.id !== id));
   }
 
-  // TODOの操作
-  function updateTodo(index: number, field: keyof ExtractedResult["todos"][0], value: string) {
+  function updateTodo(id: string, field: keyof Omit<TodoItem, "id">, value: string) {
     setTodos((prev) =>
-      prev.map((t, i) => {
-        if (i !== index) return t;
-        // content は NOT NULL のため空文字をそのまま保持。nullable フィールドのみ空文字を null に変換
+      prev.map((t) => {
+        if (t.id !== id) return t;
         const newValue = field === "content" ? value : (value || null);
         return { ...t, [field]: newValue };
       })
     );
   }
   function addTodo() {
-    setTodos((prev) => [...prev, { content: "", assignee: null, dueDate: null }]);
+    setTodos((prev) => [...prev, { id: crypto.randomUUID(), content: "", assignee: null, dueDate: null }]);
   }
-  function removeTodo(index: number) {
-    setTodos((prev) => prev.filter((_, i) => i !== index));
+  function removeTodo(id: string) {
+    setTodos((prev) => prev.filter((t) => t.id !== id));
   }
 
   return (
@@ -165,28 +154,27 @@ export default function NewMinutePage() {
             onChange={(e) => setRawText(e.target.value)}
           />
         </div>
-        {error && !extracted && (
-            <div className="flex items-center gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-    <AlertCircle className="h-4 w-4 shrink-0" />
-    {error}
-  </div>
+        {error && !hasExtracted && (
+          <div className="flex items-center gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            {error}
+          </div>
         )}
         <Button onClick={handleExtract} disabled={isExtracting}>
-  {isExtracting ? (
-    <>
-      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-      AI解析中...
-    </>
-  ) : "AI抽出"}
+          {isExtracting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              AI解析中...
+            </>
+          ) : "AI抽出"}
         </Button>
       </section>
 
       {/* Step2: 抽出結果の編集 */}
-      {extracted && (
+      {hasExtracted && (
         <section className="flex flex-col gap-6 border-t pt-6">
           <h2 className="text-lg font-semibold">抽出結果の確認・編集</h2>
 
-          {/* タイトル */}
           <div>
             <Label htmlFor="title">タイトル</Label>
             <Input
@@ -197,7 +185,6 @@ export default function NewMinutePage() {
             />
           </div>
 
-          {/* 要約 */}
           <div>
             <Label htmlFor="summary">要約</Label>
             <Textarea
@@ -208,7 +195,6 @@ export default function NewMinutePage() {
             />
           </div>
 
-          {/* 日付 */}
           <div>
             <Label htmlFor="meetingDate">会議日</Label>
             <Input
@@ -220,21 +206,16 @@ export default function NewMinutePage() {
             />
           </div>
 
-          {/* 決定事項 */}
           <div>
             <Label>決定事項</Label>
             <div className="mt-2 flex flex-col gap-2">
-              {decisions.map((d, i) => (
-                <div key={i} className="flex gap-2">
+              {decisions.map((d) => (
+                <div key={d.id} className="flex gap-2">
                   <Input
-                    value={d}
-                    onChange={(e) => updateDecision(i, e.target.value)}
+                    value={d.value}
+                    onChange={(e) => updateDecision(d.id, e.target.value)}
                   />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => removeDecision(i)}
-                  >
+                  <Button variant="outline" size="sm" onClick={() => removeDecision(d.id)}>
                     削除
                   </Button>
                 </div>
@@ -245,23 +226,18 @@ export default function NewMinutePage() {
             </div>
           </div>
 
-          {/* TODO */}
           <div>
             <Label>TODO</Label>
             <div className="mt-2 flex flex-col gap-3">
-              {todos.map((todo, i) => (
-                <div key={i} className="rounded-lg border p-3 flex flex-col gap-2">
+              {todos.map((todo) => (
+                <div key={todo.id} className="rounded-lg border p-3 flex flex-col gap-2">
                   <div className="flex gap-2">
                     <Input
                       placeholder="内容"
                       value={todo.content}
-                      onChange={(e) => updateTodo(i, "content", e.target.value)}
+                      onChange={(e) => updateTodo(todo.id, "content", e.target.value)}
                     />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => removeTodo(i)}
-                    >
+                    <Button variant="outline" size="sm" onClick={() => removeTodo(todo.id)}>
                       削除
                     </Button>
                   </div>
@@ -269,12 +245,12 @@ export default function NewMinutePage() {
                     <Input
                       placeholder="担当者"
                       value={todo.assignee ?? ""}
-                      onChange={(e) => updateTodo(i, "assignee", e.target.value)}
+                      onChange={(e) => updateTodo(todo.id, "assignee", e.target.value)}
                     />
                     <Input
                       type="date"
                       value={todo.dueDate ?? ""}
-                      onChange={(e) => updateTodo(i, "dueDate", e.target.value)}
+                      onChange={(e) => updateTodo(todo.id, "dueDate", e.target.value)}
                     />
                   </div>
                 </div>
@@ -286,19 +262,19 @@ export default function NewMinutePage() {
           </div>
 
           {error && (
-              <div className="flex items-center gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-    <AlertCircle className="h-4 w-4 shrink-0" />
-    {error}
-  </div>
+            <div className="flex items-center gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              {error}
+            </div>
           )}
 
           <Button onClick={handleSave} disabled={isSaving}>
-              {isSaving ? (
-    <>
-      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-      保存中...
-    </>
-  ) : "保存する"}
+            {isSaving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                保存中...
+              </>
+            ) : "保存する"}
           </Button>
         </section>
       )}

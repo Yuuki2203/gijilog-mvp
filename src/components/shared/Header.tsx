@@ -14,7 +14,6 @@ export function Header() {
           >
             新規作成
           </Link>
-          {/* TODO: Step1完了後、ログアウトボタンを追加 */}
         </nav>
       </div>
     </header>

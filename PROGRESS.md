@@ -65,7 +65,7 @@
 - （任意）edit ページの summary 表示・編集対応
 
 ### ④ 保留事項
-- edit ページでは summary フィールドが表示されない（新規作成は表示・編集可能だが、編集ページの API レスポンスに summary を含めていない）
+- edit ページでは summary フィールドが表示されない（新規作成は表示・編集可能だが、EditForm の initialTodos/initialDecisions に summary を含めていない）
 - PDF の日本語フォント（NotoSansJP-Regular.ttf）は public/fonts に手動配置が必要。Vercel デプロイ前に確認
 
 ### ⑤ 注意点
@@ -78,3 +78,29 @@
 - 削除ボタン → confirm → 削除 → 一覧 遷移 ✅
 - PDF ダウンロード ✅
 - 他ユーザーの議事録を直接 URL で編集・削除しようとすると 404 ✅
+
+---
+
+## コードレビュー対応（完了: 2026-06-23）
+
+### ① 完了内容
+- `rawText` に `max(50000)` 上限追加（AI API コスト保護）
+- `src/features/minutes/` ゴーストディレクトリ削除（actions.ts・schema.ts・types.ts）
+- `src/app/api/minutes/[id]/export/route.ts` 501スタブ削除
+- `prisma/schema.prisma` から `isDone` フィールド削除 + マイグレーション適用
+- `src/components/shared/Header.tsx` の stale TODO コメント削除
+- `date-fns` 未使用パッケージ削除（npm uninstall）
+- `edit/page.tsx` を Server Component に変換 + `EditForm.tsx` を Client Component として分離
+  - 余分な API ラウンドトリップ（`fetch('/api/minutes/${id}')`）を排除
+  - ローディングスピナー・useEffect 不要に
+- `decisions` / `todos` リストの `key={index}` を `crypto.randomUUID()` ベースの安定 ID に変更
+  - 新規作成ページ（`new/page.tsx`）・編集フォーム（`EditForm.tsx`）両方に適用
+- ローカル重複型（`ExtractedResult`・`Todo`）を削除し `ExtractedMinutes` をスキーマから import
+
+### ② 確定した設計判断と理由
+- `edit/page.tsx` Server Component 化: App Router のベストプラクティス。Pages Router 時代の Client Component + useEffect fetch パターンを廃止し、初期データを Server Component で取得して EditForm へ props 渡し
+- `key={crypto.randomUUID()}` をステート初期化時（`useState(() => ...map())`）で生成: レンダー毎に UUID が変わることなく、アイテムに安定した識別子を持たせる
+
+### ③ 次にやること
+- Vercel デプロイ
+- README 完成

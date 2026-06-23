@@ -35,13 +35,28 @@ export default function LoginPage() {
   }
 
   async function handleSignUp() {
+    if (!email.trim()) {
+      setError('メールアドレスを入力してください。');
+      return;
+    }
+    if (password.length < 6) {
+      setError('パスワードは6文字以上で入力してください。');
+      return;
+    }
     setLoading(true);
     setError(null);
     const supabase = createClient();
     const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) {
-      if (error.message.includes('already registered') || error.message.includes('User already registered')) {
+      const msg = error.message.toLowerCase();
+      if (msg.includes('already registered')) {
         setError('このメールアドレスはすでに登録されています。');
+      } else if (msg.includes('password') || msg.includes('at least')) {
+        setError('パスワードが要件を満たしていません。6文字以上で入力してください。');
+      } else if (msg.includes('email') || msg.includes('invalid format')) {
+        setError('有効なメールアドレスを入力してください。');
+      } else if (msg.includes('rate limit') || msg.includes('too many')) {
+        setError('リクエストが多すぎます。しばらく時間をおいて再度お試しください。');
       } else {
         setError('サインアップに失敗しました。もう一度お試しください。');
       }

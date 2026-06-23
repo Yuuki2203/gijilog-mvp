@@ -3,7 +3,8 @@ import { z } from "zod";
 export const extractRequestSchema = z.object({
   rawText: z
     .string()
-    .min(10, "テキストが短すぎます(10文字以上を入力してください)"),
+    .min(10, "テキストが短すぎます(10文字以上を入力してください)")
+    .max(50000, "テキストが長すぎます(50,000文字以内で入力してください)"),
 });
 
 export type ExtractRequest = z.infer<typeof extractRequestSchema>;
