@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
+import { formatDate } from "@/lib/utils";
 import { renderToBuffer, Document, Page, Text, View, StyleSheet, Font } from "@react-pdf/renderer";
 import path from "path";
 
@@ -66,12 +67,6 @@ const styles = StyleSheet.create({
   },
 });
 
-function formatDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = date.getMonth() + 1;
-  const d = date.getDate();
-  return `${y}年${m}月${d}日`;
-}
 
 export async function GET(
   _req: Request,

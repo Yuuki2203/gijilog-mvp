@@ -69,3 +69,60 @@ ADR-001作成時点では`NEXT_PUBLIC_SUPABASE_ANON_KEY`を正としていたが
 Next.js 16では`middleware.ts`がdeprecatedとなり、`proxy.ts` + `proxy`関数エクスポートが
 必須となった。また、旧middlewareがEdge Runtime前提だったのに対し、proxy.tsは既定でNode.js
 ランタイム上で動作するという実行環境上の違いもある。
+
+## ADR-006: React cache() による getAuthUser の重複排除
+### 決定内容
+`src/lib/auth.ts` に React の `cache()` でラップした `getAuthUser()` を定義し、
+`(app)/layout.tsx` と各 Server Component（minutes/page.tsx、minutes/[id]/page.tsx）から呼ぶ。
+### 理由
+`(app)` レイアウトと各ページの両方で `supabase.auth.getUser()` を呼ぶと、1 リクエストで
+Supabase Auth サーバーへの往復が 2 回発生する。`cache()` はリクエスト単位でメモ化するため
+1 回に削減できる。
+### 制約と注意点
+- `cache()` は React のサーバーレンダリングツリー内でのみ有効。Server Action（`"use server"` ファイル）
+  はレンダーツリーの外で実行されるため `cache()` が効かない。Server Action では引き続き
+  `createClient()` から直接 `getUser()` を呼ぶ設計とした
+- 将来 Parallel Routes（`@slot`）を追加した場合、各スロットが別ツリーになりメモ化が効かなくなる可能性がある
+
+## ADR-007: deleteMinute で deleteMany + count チェックを採用
+### 決定内容
+`deleteMinute` Server Action では `prisma.minute.deleteMany({ where: { id, userId: user.id } })` を使い、
+返り値の `count === 0` で所有権なし（404）と判定する。
+### 理由
+Prisma の `delete()` は `where` に主キー（id）のみを要求し、追加フィールドの型制約がある。
+`deleteMany()` は任意のフィルタを `where` に受け付けるため、`userId` スコープを
+**削除操作そのもの**に組み込むことができる。
+これにより findFirst（所有権確認）→ delete（削除）の 2 ステップで生じる TOCTOU 競合を排除し、
+CLAUDE.md の「Server Actions内で必ず userId スコープの WHERE 句を明示すること」を 1 クエリで満たせる。
+### 代替案との比較
+- findFirst + delete（旧実装）: TOCTOU あり、最終 delete に userId なし → CLAUDE.md 違反
+- Prisma v4.5+ の `delete({ where: { id, userId } })`: 型レベルで許可されているかバージョン依存
+- deleteMany + count（採用）: バージョン非依存、TOCTOU なし、userId スコープが明示的
+
+## ADR-008: updateMinute でインタラクティブトランザクションを採用
+### 決定内容
+`updateMinute` Server Action では `prisma.$transaction(async (tx) => { ... })` を使い、
+所有権確認（findFirst with userId）と削除・更新を同一トランザクション内で実行する。
+### 理由
+旧実装（findFirst + batch `$transaction([...])`）は所有権確認と更新の間に TOCTOU 競合があった。
+インタラクティブトランザクションにより 2 操作を原子的に実行し、CLAUDE.md の userId スコープ
+要件を findFirst の WHERE 句で満たす。
+### 重要な制約
+`redirect()` および `notFound()` はどちらも内部で例外を throw する Next.js の制御フロー機構。
+これらを `$transaction` コールバック内で呼ぶと Prisma がロールバックを試みてから再 throw するが、
+Prisma がエラーオブジェクトを変更しないことに依存している。より安全なパターンは
+所有権確認の結果を戻り値で受け取り、`notFound()` をトランザクション外で呼ぶことだが、
+現バージョンの Prisma はエラーオブジェクトを変更しないことが確認されているため現状維持とした。
+`redirect()` はトランザクション外（`await prisma.$transaction(...)` の後）で呼ぶこと。
+
+## ADR-009: rawText と summary の二重保存
+### 決定内容
+議事録レコードに原文テキスト（`rawText`）と AI 生成要約（`summary`）を両方 DB に保存する。
+### 理由
+- `rawText`: 将来の再抽出・監査証跡・検索インデックス用途のために保存。AI の抽出精度向上時に
+  原文から再処理できる
+- `summary`: 一覧ページでの表示（将来）・PDF 出力・ユーザーによる確認・編集のために保存。
+  新規作成フォームの Step2 で AI 生成後にユーザーが修正できる UI を提供している
+### UI での扱い
+新規作成（`/minutes/new`）: Step2 の確認フォームに summary の Textarea を表示し、ユーザーが保存前に確認・編集可能。
+編集（`/minutes/[id]/edit`）: 現状 summary フィールドは表示・編集不可（API レスポンスに未含有）。今後の改善候補。

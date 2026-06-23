@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 type CreateMinuteInput = {
   title: string;
   meetingDate: string;
+  rawText: string;
   summary: string;
   decisions: string[];
   todos: Array<{
@@ -28,7 +29,7 @@ export async function createMinute(input: CreateMinuteInput) {
       userId: user.id,
       title: input.title,
       meetingDate: new Date(input.meetingDate),
-      rawText: "",
+      rawText: input.rawText,
       summary: input.summary,
       decisions: {
         create: input.decisions.map((content, order) => ({ content, order })),
@@ -54,15 +55,11 @@ export async function deleteMinute(id: string) {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // 他人の議事録を削除できないようにuserIdで検証
-  const minute = await prisma.minute.findFirst({
+  // deleteMany は WHERE に userId を含み、0件なら所有権なしとみなす（TOCTOU 排除）
+  const { count } = await prisma.minute.deleteMany({
     where: { id, userId: user.id },
   });
-  if (!minute) notFound();
-
-  await prisma.minute.delete({
-    where: { id },
-  });
+  if (count === 0) notFound();
 
   redirect("/minutes");
 }
@@ -85,17 +82,18 @@ export async function updateMinute(id: string, input: UpdateMinuteInput) {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // 他人の議事録を編集できないようにuserIdで検証
-  const existing = await prisma.minute.findFirst({
-    where: { id, userId: user.id },
-  });
-  if (!existing) notFound();
+  // interactive transaction で所有権確認と更新を原子的に実行（TOCTOU 排除）
+  await prisma.$transaction(async (tx) => {
+    const existing = await tx.minute.findFirst({
+      where: { id, userId: user.id },
+      select: { id: true },
+    });
+    if (!existing) notFound();
 
-  // 決定事項・TODOは全削除→再作成
-  await prisma.$transaction([
-    prisma.decision.deleteMany({ where: { minuteId: id } }),
-    prisma.todo.deleteMany({ where: { minuteId: id } }),
-    prisma.minute.update({
+    // 決定事項・TODOは全削除→再作成
+    await tx.decision.deleteMany({ where: { minuteId: id } });
+    await tx.todo.deleteMany({ where: { minuteId: id } });
+    await tx.minute.update({
       where: { id },
       data: {
         title: input.title,
@@ -112,8 +110,8 @@ export async function updateMinute(id: string, input: UpdateMinuteInput) {
           })),
         },
       },
-    }),
-  ]);
+    });
+  });
 
   redirect(`/minutes/${id}`);
 }

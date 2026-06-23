@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { createMinute } from "@/app/actions/minutes";
+import { isNextInternalError } from "@/lib/utils";
 import { Loader2, AlertCircle } from "lucide-react";
 
 type ExtractedResult = {
@@ -21,16 +22,6 @@ type ExtractedResult = {
     dueDate: string | null;
   }>;
 };
-
-function isRedirectError(err: unknown): boolean {
-  return (
-    typeof err === "object" &&
-    err !== null &&
-    "digest" in err &&
-    typeof (err as { digest: unknown }).digest === "string" &&
-    (err as { digest: string }).digest.startsWith("NEXT_REDIRECT")
-  );
-}
 
 export default function NewMinutePage() {
   // 入力
@@ -105,10 +96,11 @@ export default function NewMinutePage() {
     setIsSaving(true);
     setError(null);
     try {
-      await createMinute({ title, meetingDate, summary, decisions, todos });
+      await createMinute({ title, meetingDate, rawText, summary, decisions, todos });
     } catch (err) {
-      if (isRedirectError(err)) throw err;
+      if (isNextInternalError(err)) throw err;
       setError("保存に失敗しました。");
+    } finally {
       setIsSaving(false);
     }
   }
@@ -202,6 +194,17 @@ export default function NewMinutePage() {
               className="mt-1"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+            />
+          </div>
+
+          {/* 要約 */}
+          <div>
+            <Label htmlFor="summary">要約</Label>
+            <Textarea
+              id="summary"
+              className="mt-1 min-h-24"
+              value={summary}
+              onChange={(e) => setSummary(e.target.value)}
             />
           </div>
 

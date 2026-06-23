@@ -1,16 +1,10 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { buttonVariants } from "@/components/ui/button";
 import { DeleteButton } from "./delete-button";
-
-function formatDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = date.getMonth() + 1;
-  const d = date.getDate();
-  return `${y}年${m}月${d}日`;
-}
+import { formatDate } from "@/lib/utils";
 
 export default async function MinuteDetailPage({
   params,
@@ -19,10 +13,7 @@ export default async function MinuteDetailPage({
 }) {
   const { id } = await params;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) redirect("/login");
 
   const minute = await prisma.minute.findFirst({

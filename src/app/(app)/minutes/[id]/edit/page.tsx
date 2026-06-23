@@ -6,17 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { updateMinute } from "@/app/actions/minutes";
+import { isNextInternalError } from "@/lib/utils";
 import { Loader2, AlertCircle } from "lucide-react";
-
-function isRedirectError(err: unknown): boolean {
-  return (
-    typeof err === "object" &&
-    err !== null &&
-    "digest" in err &&
-    typeof (err as { digest: unknown }).digest === "string" &&
-    (err as { digest: string }).digest.startsWith("NEXT_REDIRECT")
-  );
-}
 
 type Todo = {
   content: string;
@@ -83,8 +74,9 @@ export default function EditMinutePage({
     try {
       await updateMinute(minuteId, { title, meetingDate, decisions, todos });
     } catch (err) {
-      if (isRedirectError(err)) throw err;
+      if (isNextInternalError(err)) throw err;
       setError("保存に失敗しました。");
+    } finally {
       setIsSaving(false);
     }
   }
