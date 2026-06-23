@@ -20,7 +20,8 @@ export default function NewMinutePage() {
 
   const [isExtracting, setIsExtracting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [extractError, setExtractError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [hasExtracted, setHasExtracted] = useState(false);
 
   const [title, setTitle] = useState("");
@@ -41,11 +42,12 @@ export default function NewMinutePage() {
 
   async function handleExtract() {
     if (!rawText.trim()) {
-      setError("テキストを入力してください。");
+      setExtractError("テキストを入力してください。");
       return;
     }
     setIsExtracting(true);
-    setError(null);
+    setExtractError(null);
+    setSaveError(null);
     try {
       const res = await fetch("/api/ai/extract", {
         method: "POST",
@@ -63,7 +65,7 @@ export default function NewMinutePage() {
       setTodos(data.todos.map((t) => ({ id: crypto.randomUUID(), ...t })));
       setHasExtracted(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "抽出に失敗しました。");
+      setExtractError(err instanceof Error ? err.message : "抽出に失敗しました。");
     } finally {
       setIsExtracting(false);
     }
@@ -71,15 +73,15 @@ export default function NewMinutePage() {
 
   async function handleSave() {
     if (!title.trim()) {
-      setError("タイトルを入力してください。");
+      setSaveError("タイトルを入力してください。");
       return;
     }
     if (!meetingDate) {
-      setError("日付を入力してください。");
+      setSaveError("日付を入力してください。");
       return;
     }
     setIsSaving(true);
-    setError(null);
+    setSaveError(null);
     try {
       await createMinute({
         title,
@@ -91,7 +93,7 @@ export default function NewMinutePage() {
       });
     } catch (err) {
       if (isNextInternalError(err)) throw err;
-      setError("保存に失敗しました。");
+      setSaveError("保存に失敗しました。");
     } finally {
       setIsSaving(false);
     }
@@ -154,10 +156,10 @@ export default function NewMinutePage() {
             onChange={(e) => setRawText(e.target.value)}
           />
         </div>
-        {error && !hasExtracted && (
+        {extractError && (
           <div className="flex items-center gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
             <AlertCircle className="h-4 w-4 shrink-0" />
-            {error}
+            {extractError}
           </div>
         )}
         <Button onClick={handleExtract} disabled={isExtracting}>
@@ -261,10 +263,10 @@ export default function NewMinutePage() {
             </div>
           </div>
 
-          {error && (
+          {saveError && (
             <div className="flex items-center gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
               <AlertCircle className="h-4 w-4 shrink-0" />
-              {error}
+              {saveError}
             </div>
           )}
 
