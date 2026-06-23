@@ -3,7 +3,6 @@ import Link from "next/link";
 import { getAuthUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { buttonVariants } from "@/components/ui/button";
-import { logout } from "@/app/actions/auth";
 import { formatDate } from "@/lib/utils";
 
 export default async function MinutesPage() {
@@ -23,18 +22,8 @@ export default async function MinutesPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-8">
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6">
         <h1 className="text-2xl font-bold">議事録一覧</h1>
-        <div className="flex gap-2">
-          <form action={logout}>
-            <button type="submit" className={buttonVariants({ variant: "outline" })}>
-              ログアウト
-            </button>
-          </form>
-          <Link href="/minutes/new" className={buttonVariants()}>
-            新規作成
-          </Link>
-        </div>
       </div>
 
 {minutes.length === 0 ? (

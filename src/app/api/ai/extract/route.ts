@@ -17,7 +17,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const body = await request.json();
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "リクエストの形式が正しくありません。" }, { status: 400 });
+  }
 
   const parsedRequest = extractRequestSchema.safeParse(body);
   if (!parsedRequest.success) {
