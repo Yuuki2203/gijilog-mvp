@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { logout } from "@/app/actions/auth";
+import { buttonVariants } from "@/components/ui/button";
 
 export function Header() {
   return (
@@ -14,6 +16,11 @@ export function Header() {
           >
             新規作成
           </Link>
+          <form action={logout}>
+            <button type="submit" className={buttonVariants({ variant: "outline", size: "sm" })}>
+              ログアウト
+            </button>
+          </form>
         </nav>
       </div>
     </header>
