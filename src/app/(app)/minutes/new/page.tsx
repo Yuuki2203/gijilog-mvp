@@ -165,7 +165,7 @@ export default function NewMinutePage() {
           {isExtracting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              AI解析中...
+              AIが解析中です...
             </>
           ) : "AI抽出"}
         </Button>

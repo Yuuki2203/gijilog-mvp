@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
+import { GuestLoginButton } from '@/components/guest-login-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,20 +28,6 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       setError('メールアドレスまたはパスワードが正しくありません。');
-    } else {
-      router.push('/minutes');
-      router.refresh();
-    }
-    setLoading(false);
-  }
-
-  async function handleGuestLogin() {
-    setLoading(true);
-    setError(null);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInAnonymously();
-    if (error) {
-      setError('ゲストログインに失敗しました。');
     } else {
       router.push('/minutes');
       router.refresh();
@@ -158,9 +145,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <Button variant="outline" className="w-full" onClick={handleGuestLogin} disabled={loading}>
-            ゲストとして試す
-          </Button>
+          <GuestLoginButton />
         </CardContent>
       </Card>
     </main>

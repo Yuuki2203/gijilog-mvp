@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { signInAsGuest } from './login/actions'
+import { GuestLoginButton } from '@/components/guest-login-button'
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -39,11 +39,7 @@ export default async function HomePage() {
           <Button asChild size="lg">
             <Link href="/login">今すぐ試す →</Link>
           </Button>
-          <form action={signInAsGuest}>
-            <Button type="submit" variant="outline" size="lg">
-              ゲストとして試す
-            </Button>
-          </form>
+          <GuestLoginButton size="lg" />
         </div>
 
         {/* 機能3点 */}
